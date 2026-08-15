@@ -98,6 +98,19 @@ class InventoryServiceIntegrationTest {
     }
 
     @Test
+    void shouldExposeOpenApiDocumentation() throws Exception {
+        HttpResponse<String> response = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/v3/api-docs"))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("/api/inventory/stock/{partId}");
+    }
+
+    @Test
     void shouldReserveStockWhenOrderServicePublishesAnOrderCreatedEvent() throws Exception {
         UUID orderId = UUID.randomUUID();
         UUID partId = UUID.randomUUID();
