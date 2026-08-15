@@ -51,6 +51,28 @@ class InventoryServiceTest {
     }
 
     @Test
+    void shouldNotReserveStockTwiceForTheSameOrderItem() {
+        StockLevel stock = StockLevel.builder()
+                .id(1L)
+                .partId("PART-123")
+                .availableQuantity(8)
+                .reservedQuantity(2)
+                .version(0L)
+                .build();
+
+        when(reservationRepository.existsByOrderIdAndPartId("ORDER-999", "PART-123"))
+                .thenReturn(true);
+
+        boolean result = inventoryService.reserveStock("ORDER-999", "PART-123", 2);
+
+        assertTrue(result);
+        assertEquals(8, stock.getAvailableQuantity());
+        assertEquals(2, stock.getReservedQuantity());
+        verifyNoInteractions(stockLevelRepository);
+        verify(reservationRepository, never()).save(any());
+    }
+
+    @Test
     void shouldFailWhenStockIsInsufficient() {
         StockLevel stock = StockLevel.builder()
                 .id(1L)

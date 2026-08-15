@@ -41,6 +41,11 @@ public class InventoryService {
 
     @Transactional
     public boolean reserveStock(String orderId, String partId, int quantity) {
+        if (reservationRepository.existsByOrderIdAndPartId(orderId, partId)) {
+            log.info("Reservation already exists for order ID: {} and part ID: {}", orderId, partId);
+            return true;
+        }
+
         StockLevel stock = stockLevelRepository.findByPartId(partId)
                 .orElseThrow(() -> new IllegalArgumentException("Stock not found for part: " + partId));
 
