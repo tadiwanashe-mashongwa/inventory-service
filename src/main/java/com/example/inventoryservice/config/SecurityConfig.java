@@ -26,6 +26,7 @@ public class SecurityConfig {
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(GET, "/api/inventory/stock/**").hasAnyRole("CUSTOMER", "ADMIN")
                         .requestMatchers("/api/inventory/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

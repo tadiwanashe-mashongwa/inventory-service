@@ -7,6 +7,7 @@ import com.example.inventoryservice.repository.StockLevelRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -19,6 +20,10 @@ import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
 import java.util.UUID;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 import static org.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -33,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 )
 @Testcontainers
 class InventoryServiceIntegrationTest {
+
+    @LocalServerPort
+    private int port;
 
     @Container
     static final PostgreSQLContainer<?> postgres =
@@ -74,6 +82,19 @@ class InventoryServiceIntegrationTest {
         );
 
         assertThat(appliedMigrations).isEqualTo(1);
+    }
+
+    @Test
+    void shouldExposePublicHealthEndpoint() throws Exception {
+        HttpResponse<String> response = HttpClient.newHttpClient().send(
+                HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/actuator/health"))
+                        .GET()
+                        .build(),
+                HttpResponse.BodyHandlers.ofString()
+        );
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains("\"status\":\"UP\"");
     }
 
     @Test
