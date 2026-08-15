@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/tadiwanashe-mashongwa/inventory-service/actions/workflows/ci.yml/badge.svg)](https://github.com/tadiwanashe-mashongwa/inventory-service/actions/workflows/ci.yml)
 [![JaCoCo coverage](.github/badges/jacoco.svg)](target/site/jacoco/index.html)
+[![Java 17](https://img.shields.io/badge/Java-17-orange)](https://openjdk.org/projects/jdk/17/)
+[![Spring Boot 3.2.5](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)](https://spring.io/projects/spring-boot)
 
 The Inventory Service manages spare-part stock for the SpareLink automotive platform. It exposes secured stock operations and consumes order events to reserve stock reliably.
 
