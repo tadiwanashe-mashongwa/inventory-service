@@ -14,12 +14,19 @@ public class OrderEventListener {
 
     private final InventoryService inventoryService;
 
-    @KafkaListener(topics = "order-created-topic", groupId = "inventory-service-group")
+    @KafkaListener(topics = "order-created", groupId = "inventory-service-group")
     public void handleOrderCreated(OrderCreatedEvent event) {
-        log.info("Received order created event for order ID: {} and part ID: {}", event.orderId(), event.partId());
-        boolean reserved = inventoryService.reserveStock(event.orderId(), event.partId(), event.quantity());
-        if (!reserved) {
-            log.warn("Failed to reserve stock for order ID: {} due to insufficient quantity", event.orderId());
-        }
+        log.info("Received order created event for order ID: {}", event.orderId());
+        event.items().forEach(item -> {
+            boolean reserved = inventoryService.reserveStock(
+                    event.orderId().toString(),
+                    item.partId().toString(),
+                    item.quantity()
+            );
+            if (!reserved) {
+                log.warn("Failed to reserve stock for order ID: {} and part ID: {} due to insufficient quantity",
+                        event.orderId(), item.partId());
+            }
+        });
     }
 }

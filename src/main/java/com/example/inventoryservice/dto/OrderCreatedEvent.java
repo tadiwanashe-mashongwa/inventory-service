@@ -1,7 +1,10 @@
 package com.example.inventoryservice.dto;
 
+import java.util.List;
+import java.util.UUID;
+
 public record OrderCreatedEvent(
-        String orderId,
-        String partId,
-        Integer quantity
+        UUID orderId,
+        UUID customerId,
+        List<OrderItemEvent> items
 ) {}
