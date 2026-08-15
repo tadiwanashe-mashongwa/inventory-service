@@ -7,6 +7,7 @@ import com.example.inventoryservice.repository.StockLevelRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -57,9 +58,22 @@ class InventoryServiceIntegrationTest {
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void contextLoads() {
         // Verifies Spring Boot starts successfully with PostgreSQL and Kafka.
+    }
+
+    @Test
+    void shouldApplyInventorySchemaThroughFlyway() {
+        Integer appliedMigrations = jdbcTemplate.queryForObject(
+                "select count(*) from flyway_schema_history where version = '1' and success = true",
+                Integer.class
+        );
+
+        assertThat(appliedMigrations).isEqualTo(1);
     }
 
     @Test
