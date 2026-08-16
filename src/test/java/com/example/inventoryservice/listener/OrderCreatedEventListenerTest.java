@@ -1,6 +1,7 @@
 package com.example.inventoryservice.listener;
 import com.example.inventoryservice.dto.*;
 import com.example.inventoryservice.producer.StockReservationEventProducer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.inventoryservice.service.InventoryService;
 import org.junit.jupiter.api.Test;
 import java.util.*;
