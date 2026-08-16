@@ -3,6 +3,8 @@ package com.example.inventoryservice;
 import com.example.inventoryservice.dto.OrderCreatedEvent;
 import com.example.inventoryservice.dto.OrderItemEvent;
 import com.example.inventoryservice.entity.StockLevel;
+import com.example.inventoryservice.entity.Reservation;
+import com.example.inventoryservice.repository.ReservationRepository;
 import com.example.inventoryservice.repository.StockLevelRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +65,9 @@ class InventoryServiceIntegrationTest {
 
     @Autowired
     private StockLevelRepository stockLevelRepository;
+
+    @Autowired
+    private ReservationRepository reservationRepository;
 
     @Autowired
     private KafkaTemplate<String, Object> kafkaTemplate;
@@ -167,6 +172,44 @@ class InventoryServiceIntegrationTest {
             StockLevel stock = stockLevelRepository.findByPartId(partId.toString()).orElseThrow();
             assertThat(stock.getAvailableQuantity()).isEqualTo(10);
             assertThat(stock.getReservedQuantity()).isZero();
+        });
+    }
+
+    @Test
+    void shouldConfirmReservedStockWhenPaymentSucceeds() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID partId = UUID.randomUUID();
+        stockLevelRepository.save(StockLevel.builder()
+                .partId(partId.toString())
+                .availableQuantity(10)
+                .reservedQuantity(0)
+                .build());
+
+        kafkaTemplate.send("order-created", orderId.toString(), new OrderCreatedEvent(
+                orderId,
+                UUID.randomUUID(),
+                List.of(new OrderItemEvent(partId, 3))
+        )).get();
+
+        await().untilAsserted(() -> assertThat(reservationRepository.findByOrderId(orderId.toString()))
+                .singleElement()
+                .extracting(Reservation::getStatus)
+                .isEqualTo(Reservation.ReservationStatus.PENDING));
+
+        kafkaTemplate.send("payment-status-changed", orderId.toString(), Map.of(
+                "paymentId", UUID.randomUUID().toString(),
+                "orderId", orderId.toString(),
+                "status", "SUCCESS"
+        )).get();
+
+        await().untilAsserted(() -> {
+            StockLevel stock = stockLevelRepository.findByPartId(partId.toString()).orElseThrow();
+            assertThat(stock.getAvailableQuantity()).isEqualTo(7);
+            assertThat(stock.getReservedQuantity()).isZero();
+            assertThat(reservationRepository.findByOrderId(orderId.toString()))
+                    .singleElement()
+                    .extracting(Reservation::getStatus)
+                    .isEqualTo(Reservation.ReservationStatus.CONFIRMED);
         });
     }
 }
