@@ -19,6 +19,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -131,6 +132,41 @@ class InventoryServiceIntegrationTest {
             StockLevel stock = stockLevelRepository.findByPartId(partId.toString()).orElseThrow();
             assertThat(stock.getAvailableQuantity()).isEqualTo(7);
             assertThat(stock.getReservedQuantity()).isEqualTo(3);
+        });
+    }
+
+    @Test
+    void shouldReleaseReservedStockWhenPaymentFails() throws Exception {
+        UUID orderId = UUID.randomUUID();
+        UUID partId = UUID.randomUUID();
+        stockLevelRepository.save(StockLevel.builder()
+                .partId(partId.toString())
+                .availableQuantity(10)
+                .reservedQuantity(0)
+                .build());
+
+        kafkaTemplate.send("order-created", orderId.toString(), new OrderCreatedEvent(
+                orderId,
+                UUID.randomUUID(),
+                List.of(new OrderItemEvent(partId, 3))
+        )).get();
+
+        await().untilAsserted(() -> {
+            StockLevel stock = stockLevelRepository.findByPartId(partId.toString()).orElseThrow();
+            assertThat(stock.getAvailableQuantity()).isEqualTo(7);
+            assertThat(stock.getReservedQuantity()).isEqualTo(3);
+        });
+
+        kafkaTemplate.send("payment-status-changed", orderId.toString(), Map.of(
+                "paymentId", UUID.randomUUID().toString(),
+                "orderId", orderId.toString(),
+                "status", "FAILED"
+        )).get();
+
+        await().untilAsserted(() -> {
+            StockLevel stock = stockLevelRepository.findByPartId(partId.toString()).orElseThrow();
+            assertThat(stock.getAvailableQuantity()).isEqualTo(10);
+            assertThat(stock.getReservedQuantity()).isZero();
         });
     }
 }
