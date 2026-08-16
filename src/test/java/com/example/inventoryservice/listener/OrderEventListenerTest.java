@@ -1,10 +1,9 @@
 package com.example.inventoryservice.listener;
 
-import com.example.inventoryservice.dto.PaymentEvent;
 import com.example.inventoryservice.service.InventoryService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -16,24 +15,25 @@ class OrderStatusEventListenerTest {
     @Mock
     private InventoryService inventoryService;
 
-    @InjectMocks
-    private OrderStatusEventListener orderStatusEventListener;
-
     @Test
-    void shouldConfirmReservationOnSuccessPayment() {
-        PaymentEvent event = new PaymentEvent("ORDER-123", "SUCCESS");
+    void shouldConfirmReservationFromPaymentStatusJsonWithMetadata() {
+        OrderStatusEventListener orderStatusEventListener = new OrderStatusEventListener(inventoryService, new ObjectMapper());
 
-        orderStatusEventListener.handlePaymentEvent(event);
+        orderStatusEventListener.handlePaymentEvent("""
+                {"paymentId":"payment-123","orderId":"ORDER-123","status":"SUCCESS"}
+                """);
 
         verify(inventoryService, times(1)).confirmReservation("ORDER-123");
         verify(inventoryService, never()).cancelReservation(anyString());
     }
 
     @Test
-    void shouldCancelReservationOnFailedPayment() {
-        PaymentEvent event = new PaymentEvent("ORDER-123", "FAILED");
+    void shouldCancelReservationFromFailedPaymentStatusJsonWithMetadata() {
+        OrderStatusEventListener orderStatusEventListener = new OrderStatusEventListener(inventoryService, new ObjectMapper());
 
-        orderStatusEventListener.handlePaymentEvent(event);
+        orderStatusEventListener.handlePaymentEvent("""
+                {"paymentId":"payment-123","orderId":"ORDER-123","status":"FAILED"}
+                """);
 
         verify(inventoryService, times(1)).cancelReservation("ORDER-123");
         verify(inventoryService, never()).confirmReservation(anyString());
