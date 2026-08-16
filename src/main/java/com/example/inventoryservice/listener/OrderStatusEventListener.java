@@ -14,7 +14,7 @@ public class OrderStatusEventListener {
 
     private final InventoryService inventoryService;
 
-    @KafkaListener(topics = "payment-events-topic", groupId = "inventory-service-group")
+    @KafkaListener(topics = "payment-status-changed", groupId = "inventory-service-group")
     public void handlePaymentEvent(PaymentEvent event) {
         log.info("Received payment event for order ID: {} with status: {}", event.orderId(), event.status());
         if ("SUCCESS".equalsIgnoreCase(event.status())) {
